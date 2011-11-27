@@ -85,9 +85,10 @@ module NewRelic
 
         explanations = @segment.explain_sql
         if explanations
-          @explanation = explanations.first
-          if !@explanation.blank?
-            first_row = @explanation.first
+          @row_headers = explanations.shift
+          @explanation = explanations.shift
+          if @row_headers.blank?
+            first_row = @explanation.take(1)
             # Show the standard headers if it looks like a mysql explain plan
             # Otherwise show blank headers
             if first_row.length < NewRelic::MYSQL_EXPLAIN_COLUMNS.length
@@ -95,6 +96,9 @@ module NewRelic
             else
               @row_headers = NewRelic::MYSQL_EXPLAIN_COLUMNS
             end
+          end
+          if @row_headers.length == 1
+            @row_headers = nil
           end
         end
         render(:explain_sql)

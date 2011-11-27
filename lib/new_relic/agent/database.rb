@@ -65,10 +65,19 @@ module NewRelic
             connection = get_connection(config)
             plan = nil
             if connection
-              plan = process_resultset(connection.execute("EXPLAIN #{statement}"))
+              command = explain_command(config)
+              plan = process_resultset(connection.execute("EXPLAIN #{command} #{statement}"))
             end
             return plan
           end
+        end
+      end
+
+      def explain_command(config)
+        case config[:adapter]
+        when /postgresql/; 'ANALYZE'
+        when /sqlite/; 'QUERY PLAN'
+        else ''
         end
       end
       
@@ -97,6 +106,13 @@ module NewRelic
           values = [items]
         end
         
+        #sqlite
+        if headers.index('selectid')
+          # order of headers and values is uncorrelated
+          headers = ['selectid']
+          values = values.map{|row| row.select {|col| col.kind_of?(String)}.take(1)}
+        end
+
         headers = nil if headers.empty?
         [headers, values]
       end
